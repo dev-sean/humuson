@@ -1,5 +1,6 @@
 package com.humuson.devsean.common.support
 
+import com.humuson.devsean.common.exception.DataValidationException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -17,6 +18,10 @@ fun isValidDateFormat(dateString: String): Boolean {
 }
 
 fun convertStringToLocalDateTime(dateString: String): LocalDateTime {
-    val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_YYYY_MM_DD_TIME)
-    return LocalDateTime.parse(dateString, formatter)
+    try {
+        val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_YYYY_MM_DD_TIME)
+        return LocalDateTime.parse(dateString, formatter)
+    } catch (e: DateTimeParseException) {
+        throw DataValidationException("지원하지 않는 날짜 형식입니다: $dateString")
+    }
 }
