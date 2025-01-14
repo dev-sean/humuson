@@ -57,7 +57,7 @@ class ExternalSystemConnectorImpl(
                 if (response.statusCode.is2xxSuccessful) {
                     logger.info("주문이 성공적으로 전송되었습니다.")
                 } else {
-                    logger.warn("주문 전송 실패: HTTP 상태 코드 ${response.statusCode}")
+                    logger.error("주문 전송 실패: HTTP 상태 코드 ${response.statusCode}")
                     throw ExternalSystemException("주문 전송 실패: HTTP 상태 코드 ${response.statusCode}")
                 }
             } catch (e: Exception) {
@@ -92,6 +92,10 @@ class ExternalSystemConnectorImpl(
             is RestClientException -> "REST 클라이언트 오류: ${e.message}"
             else -> "예기치 않은 오류 발생: ${e.message}"
         }
-        throw HttpClientException("$operation 중 오류 발생: $message")
+
+        val fullErrorMessage = "$operation 중 오류 발생: $message"
+        logger.error(fullErrorMessage, e)
+
+        throw HttpClientException(fullErrorMessage)
     }
 }
