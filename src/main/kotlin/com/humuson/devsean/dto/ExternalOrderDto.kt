@@ -1,6 +1,6 @@
 package com.humuson.devsean.dto
 
-data class OrderDto(
+data class ExternalOrderDto(
     val orderId: String,
     val customerName: String,
     val orderDate: String,

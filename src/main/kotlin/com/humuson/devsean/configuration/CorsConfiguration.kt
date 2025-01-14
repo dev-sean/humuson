@@ -25,5 +25,4 @@ class CorsConfiguration {
         source.registerCorsConfiguration("/**", config)
         return CorsFilter(source)
     }
-
 }

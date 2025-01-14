@@ -20,4 +20,3 @@ fun convertStringToLocalDateTime(dateString: String): LocalDateTime {
     val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_YYYY_MM_DD_TIME)
     return LocalDateTime.parse(dateString, formatter)
 }
-

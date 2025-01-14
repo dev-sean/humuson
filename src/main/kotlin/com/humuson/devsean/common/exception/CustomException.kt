@@ -4,3 +4,6 @@ class ExternalSystemException(message: String? = null, throwable: Throwable? = n
     RuntimeException(message, throwable)
 
 class DataValidationException(message: String) : RuntimeException(message)
+
+class HttpClientException(message: String? = null, throwable: Throwable? = null) :
+    RuntimeException(message, throwable)

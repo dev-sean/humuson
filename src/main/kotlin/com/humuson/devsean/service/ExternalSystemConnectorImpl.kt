@@ -1,30 +1,23 @@
 package com.humuson.devsean.service
 
 import com.humuson.devsean.common.exception.ExternalSystemException
-import com.humuson.devsean.common.support.convertStringToLocalDateTime
-import com.humuson.devsean.common.support.validateExternalOrderData
-import com.humuson.devsean.dto.OrderDto
-import com.humuson.devsean.entity.Order
-import com.humuson.devsean.entity.OrderStatus
+import com.humuson.devsean.common.exception.HttpClientException
+import com.humuson.devsean.dto.ExternalOrderDto
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpEntity
-import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.HttpServerErrorException
 import org.springframework.web.client.ResourceAccessException
 import org.springframework.web.client.RestClientException
-import org.springframework.web.client.RestTemplate
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
 @Service
-class ExternalOrderServiceImpl(
+class ExternalSystemConnectorImpl(
     @Value("\${external.api.get-url}")
     private val externalApiGetUrl: String,
     @Value("\${external.api.post-url}")
@@ -33,45 +26,42 @@ class ExternalOrderServiceImpl(
     private val retryTimes: Int,
     @Value("\${retry.delay-millis}")
     private val delayMillis: Long,
-    private val restTemplate: RestTemplate,
+    private val restTemplateHttpClient: RestTemplateHttpClient,
+    private val dataConvertServiceImpl: ExternalDataConverterImpl,
     private val orderService: OrderService
-) : ExternalOrderService {
-    private val logger = LoggerFactory.getLogger(ExternalOrderServiceImpl::class.java)
+) : ExternalSystemConnector {
+    private val logger = LoggerFactory.getLogger(ExternalSystemConnectorImpl::class.java)
 
-    override fun fetchOrdersFromExternalSystem() = runBlocking {
+    override fun fetchExternalOrders() = runBlocking {
         retry(retryTimes, delayMillis) {
             try {
-                val response = restTemplate.getForObject(
+                val response = restTemplateHttpClient.get(
                     externalApiGetUrl,
-                    Array<OrderDto>::class.java
+                    Array<ExternalOrderDto>::class.java
                 )
-                // TODO
-                logger.info(response?.toList().toString())
-
-                val orders = response?.map { convertToInternalOrder(it) } ?: emptyList()
+                val orders = response.map { dataConvertServiceImpl.convertToOrder(it) }
                 orderService.saveOrders(orders)
+                logger.info("주문이 성공적으로 수신되었습니다.")
             } catch (e: Exception) {
-                handleException(e, "주문 조회")
+                handleCustomException(e, "주문 조회")
             }
         }
     }
 
     override fun sendOrdersToExternalSystem() = runBlocking {
-        val orders = orderService.getAllOrders()
+        val orders = orderService.findAllOrders()
+        val jsonOrder = dataConvertServiceImpl.convertToExternalJson(orders)
         retry(retryTimes, delayMillis) {
             try {
-                val headers = HttpHeaders().apply {
-                    contentType = MediaType.APPLICATION_JSON
-                }
-                val request = HttpEntity(orders, headers)
-                val response = restTemplate.postForEntity(externalApiPostUrl, request, String::class.java)
+                val response = restTemplateHttpClient.post(externalApiPostUrl, jsonOrder, String::class.java)
                 if (response.statusCode.is2xxSuccessful) {
                     logger.info("주문이 성공적으로 전송되었습니다.")
                 } else {
-                    throw ExternalSystemException("주문 전송 실패: ${response.statusCode}")
+                    logger.warn("주문 전송 실패: HTTP 상태 코드 ${response.statusCode}")
+                    throw ExternalSystemException("주문 전송 실패: HTTP 상태 코드 ${response.statusCode}")
                 }
             } catch (e: Exception) {
-                handleException(e, "주문 전송")
+                handleCustomException(e, "주문 전송")
             }
         }
     }
@@ -88,7 +78,7 @@ class ExternalOrderServiceImpl(
         return block() // 마지막 시도
     }
 
-    private fun handleException(e: Exception, operation: String): Nothing {
+    private fun handleCustomException(e: Exception, operation: String): Nothing {
         val message = when (e) {
             is HttpClientErrorException -> "클라이언트 오류: ${e.statusCode} - ${e.message}"
             is HttpServerErrorException -> "서버 오류: ${e.statusCode} - ${e.message}"
@@ -102,29 +92,6 @@ class ExternalOrderServiceImpl(
             is RestClientException -> "REST 클라이언트 오류: ${e.message}"
             else -> "예기치 않은 오류 발생: ${e.message}"
         }
-        throw ExternalSystemException("$operation 중 오류 발생: $message")
+        throw HttpClientException("$operation 중 오류 발생: $message")
     }
-
-    override fun convertToInternalOrder(orderDto: OrderDto): Order {
-        // 데이터 검증
-        validateExternalOrderData(orderDto)
-
-        // 데이터 변환
-        return Order(
-            orderId = orderDto.orderId,
-            customerName = orderDto.customerName,
-            orderDate = convertStringToLocalDateTime(orderDto.orderDate),
-            orderStatus = convertStatus(orderDto.orderStatus)
-        )
-    }
-
-    private fun convertStatus(externalStatus: String): OrderStatus {
-        return when (externalStatus) {
-            "PREPARING" -> OrderStatus.PREPARING
-            "DELIVERING" -> OrderStatus.DELIVERING
-            "COMPLETED" -> OrderStatus.COMPLETED
-            else -> OrderStatus.NONE
-        }
-    }
-
 }

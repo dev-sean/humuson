@@ -4,7 +4,7 @@ import com.humuson.devsean.entity.Order
 import org.springframework.stereotype.Repository
 
 @Repository
-class MemoryOrderRepository : OrderRepository {
+class InMemoryOrderRepository : OrderRepository {
     private val orders = mutableMapOf<String, Order>()
 
     override fun save(newOrders: List<Order>) {
