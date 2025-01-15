@@ -1,7 +1,6 @@
 package com.humuson.devsean.service
 
 import com.humuson.devsean.common.exception.ExternalSystemException
-import com.humuson.devsean.common.exception.HttpClientException
 import com.humuson.devsean.dto.ExternalOrderDto
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -96,6 +95,6 @@ class ExternalSystemConnectorImpl(
         val fullErrorMessage = "$operation 중 오류 발생: $message"
         logger.error(fullErrorMessage, e)
 
-        throw HttpClientException(fullErrorMessage)
+        throw ExternalSystemException(fullErrorMessage, e)
     }
 }
