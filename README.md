@@ -187,7 +187,7 @@ com.humuson.devsean
 
 ### 애플리케이션 설정
 
-`src/main/resources/application.properties`파일에 `server.port`, `external.api.get-url`, `external.api.post-url`을 필요에 따라
+`src/main/resources/application.properties`파일에 `server.port`, `external.api.get-url`, `external.api.post-url`을 필요에 따라
 수정하세요
 
 ```text  
@@ -212,13 +212,13 @@ external.api.post-url=http://localhost:3001/orders
 npm install express
 ```  
 
-4. 외부 시스템 서버를 실행하세요:
+4. 외부 시스템 서버를 실행하세요
 
 ```bash  
 node server.js
 ```  
 
-서버가 정상적으로 실행되면 "Server running at[http://localhost:3001](http://localhost:3001/)" 메시지가 표시됩니다.
+서버가 정상적으로 실행되면 "Server running at [http://localhost:3001](http://localhost:3001/)" 메시지가 표시됩니다.
 
 ### 주문 관리 시스템 실행
 
